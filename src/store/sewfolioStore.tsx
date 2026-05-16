@@ -79,12 +79,10 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
     async function loadData() {
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
 
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setProjects(parsed.projects || starterProjects);
-        setFabrics(parsed.fabrics || starterFabrics);
-        setStashCollections(parsed.stashCollections || starterStashCollections);
-      }
+      setProjects([]);
+      setFabrics([]);
+      setStashCollections([]);
+      setWorkbooks([]);
 
       try {
         const remoteStashCollections = await fetchStashCollections();
@@ -137,14 +135,11 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
         if (remoteWorkbooks.length > 0) {
           setWorkbooks(remoteWorkbooks);
         } else {
-          setWorkbooks(starterWorkbooks);
+          setWorkbooks([]);
         }
       } catch (error) {
         console.log("Failed to fetch workbooks from Supabase", error);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setWorkbooks(parsed.workbooks || starterWorkbooks);
-        }
+        setWorkbooks([]);
       }
 
       setLoaded(true);
