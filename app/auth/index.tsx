@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { supabase } from "../../src/lib/supabase";
 import { colors, radius, spacing } from "../../src/theme";
 
@@ -20,6 +21,38 @@ export default function AuthScreen() {
     }
 
     router.replace("/(tabs)");
+  }
+
+  async function signInWithApple() {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        Alert.alert("Apple sign in failed", "No identity token returned.");
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+      });
+
+      if (error) {
+        Alert.alert("Apple sign in failed", error.message);
+        return;
+      }
+
+      router.replace("/(tabs)");
+    } catch (error: any) {
+      if (error.code !== "ERR_REQUEST_CANCELED") {
+        Alert.alert("Apple sign in failed", error.message);
+      }
+    }
   }
 
   async function signUp() {
@@ -61,6 +94,10 @@ export default function AuthScreen() {
           secureTextEntry
         />
 
+        <Pressable onPress={signInWithApple} style={styles.appleButton}>
+          <Text style={styles.appleText}>Continue with Apple</Text>
+        </Pressable>
+
         <Pressable onPress={signIn} style={styles.primaryButton}>
           <Text style={styles.primaryText}>Sign In</Text>
         </Pressable>
@@ -89,6 +126,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: spacing.md,
   },
+  appleButton: {
+    height: 54,
+    borderRadius: radius.round,
+    backgroundColor: colors.charcoal,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.md,
+  },
+  appleText: { color: colors.white, fontSize: 16, fontWeight: "600" },
+
   primaryButton: {
     height: 54,
     borderRadius: radius.round,

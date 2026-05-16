@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { colors, radius, spacing } from "../../../src/theme";
 import { useSewfolio } from "../../../src/store/sewfolioStore";
 import { replaceProjectMaterials } from "../../../src/services/projectMaterials";
 import { replaceProjectSteps } from "../../../src/services/projectSteps";
+import { uploadImageToStorage } from "../../../src/services/imageUpload";
+import { placeholderProject } from "../../../src/utils/placeholders";
 
 export default function EditProjectScreen() {
   const { id } = useLocalSearchParams();
@@ -15,6 +18,7 @@ export default function EditProjectScreen() {
   const [title, setTitle] = useState(project.title || "");
   const [sourceUrl, setSourceUrl] = useState(project.sourceUrl || "");
   const [description, setDescription] = useState(project.description || "");
+  const [image, setImage] = useState(project.image || project.hero_image || "");
   const [difficulty, setDifficulty] = useState(project.difficulty || "");
   const [estimatedTime, setEstimatedTime] = useState(project.estimatedTime || "");
   const [notes, setNotes] = useState(project.notes || "");
@@ -31,6 +35,22 @@ export default function EditProjectScreen() {
       .map((step: any) => (typeof step === "string" ? step : step.text))
       .join("\n")
   );
+
+  async function pickImage() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.85,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  }
 
   function parseMaterials() {
     return materialsText
@@ -64,6 +84,7 @@ export default function EditProjectScreen() {
   }
 
   async function saveProject() {
+    const uploadedImage = image ? await uploadImageToStorage(image, "projects") : "";
     const materials = parseMaterials();
     const steps = parseSteps();
 
@@ -71,6 +92,7 @@ export default function EditProjectScreen() {
       title,
       workbookId,
       sourceUrl,
+      image: uploadedImage,
       description,
       difficulty,
       estimatedTime,
@@ -105,6 +127,21 @@ export default function EditProjectScreen() {
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.label}>Project cover image</Text>
+          <Pressable onPress={pickImage} style={styles.imagePicker}>
+            <Image source={image ? { uri: image } : placeholderProject} style={styles.previewImage} />
+          </Pressable>
+
+          <Text style={styles.label}>Image URL</Text>
+          <TextInput
+            style={styles.input}
+            value={image}
+            onChangeText={setImage}
+            placeholder="Paste image URL or upload a photo"
+            placeholderTextColor={colors.mutedText}
+            autoCapitalize="none"
+          />
+
           <Text style={styles.label}>Project title</Text>
           <TextInput style={styles.input} value={title} onChangeText={setTitle} />
 
@@ -229,6 +266,20 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, color: colors.charcoal, fontWeight: "500", marginBottom: spacing.sm, marginTop: spacing.md },
   sectionTitle: { fontSize: 20, color: colors.charcoal, fontWeight: "500", marginBottom: spacing.sm },
   helpText: { fontSize: 13, color: colors.mutedText, lineHeight: 19, marginBottom: spacing.md },
+
+  imagePicker: {
+    height: 210,
+    borderRadius: radius.lg,
+    backgroundColor: colors.cream,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+    marginBottom: spacing.md,
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
 
   input: { minHeight: 52, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cream, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, color: colors.charcoal, fontSize: 15 },
   textArea: { height: 110, textAlignVertical: "top" },
