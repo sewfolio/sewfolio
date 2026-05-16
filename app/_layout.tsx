@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, router, useSegments } from "expo-router";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "../src/lib/supabase";
 import { SewfolioProvider } from "../src/store/sewfolioStore";
+
+const ONBOARDING_KEY = "sewfolio-onboarding-complete";
 
 export default function RootLayout() {
   const segments = useSegments();
@@ -23,17 +26,32 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (session === undefined) return;
+    async function routeUser() {
+      if (session === undefined) return;
 
-    const inAuthGroup = segments[0] === "auth";
+      const onboardingComplete =
+        (await AsyncStorage.getItem(ONBOARDING_KEY)) === "true";
 
-    if (!session && !inAuthGroup) {
-      router.replace("/auth");
+      const currentRoot = segments[0];
+      const inAuth = currentRoot === "auth";
+      const inOnboarding = currentRoot === "onboarding";
+
+      if (!session && !inAuth) {
+        router.replace("/auth");
+        return;
+      }
+
+      if (session && !onboardingComplete && !inOnboarding) {
+        router.replace("/onboarding");
+        return;
+      }
+
+      if (session && onboardingComplete && (inAuth || inOnboarding)) {
+        router.replace("/(tabs)");
+      }
     }
 
-    if (session && inAuthGroup) {
-      router.replace("/(tabs)");
-    }
+    routeUser();
   }, [session, segments]);
 
   return (
