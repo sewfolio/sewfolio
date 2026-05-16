@@ -15,6 +15,7 @@ export default function ImportProjectLinkScreen() {
   const [title, setTitle] = useState("");
   const [image, setImage] = useState("");
   const [description, setDescription] = useState("");
+  const [sourceName, setSourceName] = useState("");
   const [materials, setMaterials] = useState<any[]>([]);
   const [steps, setSteps] = useState<any[]>([]);
   const [selectedWorkbookId, setSelectedWorkbookId] = useState(workbooks[0]?.id || "");
@@ -41,6 +42,7 @@ export default function ImportProjectLinkScreen() {
       setTitle(cleanText(imported.title || ""));
       setImage(imported.image || "");
       setDescription(cleanText(imported.description || ""));
+      setSourceName(imported.sourceName || "");
       setMaterials(imported.materials || []);
       setSteps(imported.steps || []);
     } catch (error) {
@@ -75,6 +77,7 @@ export default function ImportProjectLinkScreen() {
       title: cleanTitle,
       workbookId: selectedWorkbookId,
       sourceUrl: url,
+      sourceName,
       image,
       description,
       difficulty: "",

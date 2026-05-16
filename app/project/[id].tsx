@@ -67,9 +67,15 @@ export default function ProjectDetailScreen() {
             <Text style={styles.eyebrow}>{workbook?.title || "Saved Project"}</Text>
             <Text style={styles.title}>{project.title}</Text>
 
-            <Text style={styles.meta}>
-              {project.sourceUrl ? "Imported from online source" : "Manually saved project"}
-            </Text>
+            <View style={styles.sourceMetaRow}>
+              <Text style={project.sourceUrl ? styles.importedBadge : styles.manualBadge}>
+                {project.sourceUrl ? "Imported" : "Manual"}
+              </Text>
+
+              <Text style={styles.sourceMetaText}>
+                {project.sourceName || project.source_name || "Sewfolio"}
+              </Text>
+            </View>
 
             {project.sourceUrl?.startsWith("http") ? (
               <Pressable onPress={openSource} style={styles.sourceButton}>
@@ -207,6 +213,36 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.clay, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 5 },
   title: { fontSize: 30, color: colors.charcoal, fontWeight: "500", lineHeight: 36 },
   meta: { fontSize: 14, color: colors.mutedText, marginTop: spacing.sm },
+  sourceMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  importedBadge: {
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.round,
+    backgroundColor: colors.sage,
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  manualBadge: {
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.round,
+    backgroundColor: colors.ivory,
+    color: colors.charcoal,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  sourceMetaText: {
+    color: colors.mutedText,
+    fontSize: 13,
+  },
 
   sourceButton: { height: 48, borderRadius: radius.round, backgroundColor: colors.sage, alignItems: "center", justifyContent: "center", marginTop: spacing.lg },
   sourceButtonText: { color: colors.white, fontSize: 15, fontWeight: "600" },
