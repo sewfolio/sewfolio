@@ -15,6 +15,7 @@ import {
 } from "../services/projects";
 import { replaceProjectMaterials } from "../services/projectMaterials";
 import { replaceProjectSteps } from "../services/projectSteps";
+import { fetchAllProjectMaterials, fetchAllProjectSteps } from "../services/projectDetails";
 import {
   createStashItem,
   fetchStashItems,
@@ -105,6 +106,8 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
         }
 
         const remoteProjects = await fetchProjects();
+        const remoteMaterials = await fetchAllProjectMaterials();
+        const remoteSteps = await fetchAllProjectSteps();
 
         if (remoteProjects.length > 0) {
           setProjects(
@@ -115,6 +118,16 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
               sourceName: project.source_name,
               image: project.hero_image,
               estimatedTime: project.estimated_time,
+              materials: remoteMaterials
+                .filter((item: any) => item.project_id === project.id)
+                .map((item: any) => ({
+                  name: item.name,
+                  amount: item.amount,
+                  type: item.type,
+                })),
+              steps: remoteSteps
+                .filter((item: any) => item.project_id === project.id)
+                .map((item: any) => item.text),
             }))
           );
         }

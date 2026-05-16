@@ -1,9 +1,15 @@
 import { supabase } from "../lib/supabase";
 
 export async function fetchProjects() {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+
+  if (!userId) return [];
+
   const { data, error } = await supabase
     .from("projects")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -11,10 +17,18 @@ export async function fetchProjects() {
 }
 
 export async function createProject(project: any) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+
+  if (!userId) {
+    throw new Error("You must be signed in to create a project.");
+  }
+
   const { data, error } = await supabase
     .from("projects")
     .insert([
       {
+        user_id: userId,
         title: project.title,
         workbook_id: project.workbookId || project.workbook_id || null,
         source_url: project.sourceUrl || project.source_url || null,

@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
+import { supabase } from "../../src/lib/supabase";
 import { colors, radius, spacing, shadows } from "../../src/theme";
 
 import HomeIcon from "../../assets/icons/home.svg";
@@ -50,6 +51,11 @@ function BottomNav() {
       </Pressable>
     </View>
   );
+}
+
+async function handleSignOut() {
+  await supabase.auth.signOut();
+  router.replace("/auth");
 }
 
 export default function ProfileScreen() {
@@ -152,7 +158,7 @@ export default function ProfileScreen() {
             <Text style={styles.chevron}>›</Text>
           </Pressable>
 
-          <Pressable style={styles.rowLast} onPress={() => router.replace("/(auth)/login")}>
+          <Pressable style={styles.rowLast} onPress={handleSignOut}>
             <Text style={styles.signOut}>Sign out</Text>
             <Text style={styles.chevron}>›</Text>
           </Pressable>
