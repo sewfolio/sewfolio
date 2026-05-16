@@ -1,6 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { fabrics as starterFabrics, projects as starterProjects } from "../data/mockData";
+import {
+  createWorkbook,
+  fetchWorkbooks,
+  removeWorkbook,
+  renameWorkbook,
+} from "../services/workbooks";
 
 const STORAGE_KEY = "sewfolio-data-v1";
 
@@ -29,15 +35,13 @@ type SewfolioContextType = {
   addProject: (project: any) => void;
   updateProject: (id: string, updates: any) => void;
   toggleProjectFabric: (projectId: string, fabricId: string) => void;
-  addWorkbook: (workbook: any) => void;
-  updateWorkbook: (id: string, title: string) => void;
-  deleteWorkbook: (id: string) => void;
+  addWorkbook: (workbook: any) => Promise<void>;
+  updateWorkbook: (id: string, title: string) => Promise<void>;
+  deleteWorkbook: (id: string) => Promise<void>;
   addStashCollection: (collection: any) => void;
   updateStashCollection: (id: string, title: string) => void;
   deleteStashCollection: (id: string) => void;
   updateProjectProgress: (id: string, progress: number) => void;
-  updateProject: (id: string, updates: any) => void;
-  toggleProjectFabric: (projectId: string, fabricId: string) => void;
 };
 
 const SewfolioContext = createContext<SewfolioContextType | null>(null);
@@ -52,13 +56,30 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function loadData() {
       const saved = await AsyncStorage.getItem(STORAGE_KEY);
+
       if (saved) {
         const parsed = JSON.parse(saved);
         setProjects(parsed.projects || starterProjects);
         setFabrics(parsed.fabrics || starterFabrics);
-        setWorkbooks(parsed.workbooks || starterWorkbooks);
         setStashCollections(parsed.stashCollections || starterStashCollections);
       }
+
+      try {
+        const remoteWorkbooks = await fetchWorkbooks();
+
+        if (remoteWorkbooks.length > 0) {
+          setWorkbooks(remoteWorkbooks);
+        } else {
+          setWorkbooks(starterWorkbooks);
+        }
+      } catch (error) {
+        console.log("Failed to fetch workbooks from Supabase", error);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setWorkbooks(parsed.workbooks || starterWorkbooks);
+        }
+      }
+
       setLoaded(true);
     }
 
@@ -129,20 +150,38 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  function addWorkbook(workbook: any) {
-    setWorkbooks((current) => [workbook, ...current]);
+  async function addWorkbook(workbook: any) {
+    try {
+      const created = await createWorkbook(workbook.title, workbook.tint);
+      setWorkbooks((current) => [created, ...current]);
+    } catch (error) {
+      console.log("Failed to create workbook in Supabase", error);
+      setWorkbooks((current) => [workbook, ...current]);
+    }
   }
 
-  function updateWorkbook(id: string, title: string) {
+  async function updateWorkbook(id: string, title: string) {
     setWorkbooks((current) =>
       current.map((workbook) =>
         workbook.id === id ? { ...workbook, title } : workbook
       )
     );
+
+    try {
+      await renameWorkbook(id, title);
+    } catch (error) {
+      console.log("Failed to update workbook in Supabase", error);
+    }
   }
 
-  function deleteWorkbook(id: string) {
+  async function deleteWorkbook(id: string) {
     setWorkbooks((current) => current.filter((workbook) => workbook.id !== id));
+
+    try {
+      await removeWorkbook(id);
+    } catch (error) {
+      console.log("Failed to delete workbook in Supabase", error);
+    }
   }
 
   function addStashCollection(collection: any) {
@@ -169,36 +208,6 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  function updateProject(id: string, updates: any) {
-    setProjects((current) =>
-      current.map((project) =>
-        project.id === id ? { ...project, ...updates } : project
-      )
-    );
-  }
-
-  function toggleProjectFabric(projectId: string, fabricId: string) {
-    setProjects((current) =>
-      current.map((project) => {
-        if (project.id !== projectId) return project;
-
-        const currentFabricIds = project.fabricIds || [];
-        const alreadyAssigned = currentFabricIds.includes(fabricId);
-
-        const nextFabricIds = alreadyAssigned
-          ? currentFabricIds.filter((id: string) => id !== fabricId)
-          : [...currentFabricIds, fabricId];
-
-        return {
-          ...project,
-          fabricIds: nextFabricIds,
-          fabricId: nextFabricIds[0] || "",
-          fabric: nextFabricIds.length ? `${nextFabricIds.length} stash items` : "Not selected",
-        };
-      })
-    );
-  }
-
   return (
     <SewfolioContext.Provider
       value={{
@@ -207,6 +216,8 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
         workbooks,
         stashCollections,
         addFabric,
+        updateFabric,
+        deleteFabric,
         addProject,
         updateProject,
         toggleProjectFabric,
@@ -217,7 +228,6 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
         updateStashCollection,
         deleteStashCollection,
         updateProjectProgress,
-        updateProject,
       }}
     >
       {children}
@@ -227,8 +237,10 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
 
 export function useSewfolio() {
   const context = useContext(SewfolioContext);
+
   if (!context) {
     throw new Error("useSewfolio must be used inside SewfolioProvider");
   }
+
   return context;
 }
