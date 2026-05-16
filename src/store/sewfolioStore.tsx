@@ -13,6 +13,12 @@ import {
   removeProject,
   updateProjectRecord,
 } from "../services/projects";
+import {
+  createStashItem,
+  fetchStashItems,
+  removeStashItem,
+  updateStashItemRecord,
+} from "../services/stashItems";
 
 const STORAGE_KEY = "sewfolio-data-v1";
 
@@ -71,6 +77,18 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
+        const remoteStashItems = await fetchStashItems();
+
+        if (remoteStashItems.length > 0) {
+          setFabrics(
+            remoteStashItems.map((item: any) => ({
+              ...item,
+              collectionId: item.collection_id,
+              yardage: item.amount,
+            }))
+          );
+        }
+
         const remoteProjects = await fetchProjects();
 
         if (remoteProjects.length > 0) {
@@ -121,20 +139,46 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
     );
   }, [projects, fabrics, workbooks, stashCollections, loaded]);
 
-  function addFabric(fabric: any) {
-    setFabrics((current) => [fabric, ...current]);
+  async function addFabric(fabric: any) {
+    try {
+      const created = await createStashItem(fabric);
+
+      setFabrics((current) => [
+        {
+          ...created,
+          collectionId: created.collection_id,
+          yardage: created.amount,
+        },
+        ...current,
+      ]);
+    } catch (error) {
+      console.log("Failed to create stash item in Supabase", error);
+      setFabrics((current) => [fabric, ...current]);
+    }
   }
 
-  function updateFabric(id: string, updates: any) {
+  async function updateFabric(id: string, updates: any) {
     setFabrics((current) =>
       current.map((fabric) =>
         fabric.id === id ? { ...fabric, ...updates } : fabric
       )
     );
+
+    try {
+      await updateStashItemRecord(id, updates);
+    } catch (error) {
+      console.log("Failed to update stash item in Supabase", error);
+    }
   }
 
-  function deleteFabric(id: string) {
+  async function deleteFabric(id: string) {
     setFabrics((current) => current.filter((fabric) => fabric.id !== id));
+
+    try {
+      await removeStashItem(id);
+    } catch (error) {
+      console.log("Failed to delete stash item in Supabase", error);
+    }
   }
 
   async function addProject(project: any) {
