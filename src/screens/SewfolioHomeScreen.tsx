@@ -155,12 +155,19 @@ export default function SewfolioHomeScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.savedRow}>
-            {projects.map((item) => (
-              <Pressable key={item.id} style={styles.savedCard} onPress={() => router.push(`/project/${item.id}`)}>
-                <Image source={item.image ? { uri: item.image } : placeholderProject} style={styles.savedImage} />
-                <Text style={styles.savedLabel} numberOfLines={1}>{item.title}</Text>
+            {projects.length === 0 ? (
+              <Pressable style={styles.emptyCard} onPress={() => router.push("/project/import-link")}>
+                <Text style={styles.emptyTitle}>No saved projects yet</Text>
+                <Text style={styles.emptyText}>Import a sewing tutorial or save your first project.</Text>
               </Pressable>
-            ))}
+            ) : (
+              projects.map((item) => (
+                <Pressable key={item.id} style={styles.savedCard} onPress={() => router.push(`/project/${item.id}`)}>
+                  <Image source={item.image ? { uri: item.image } : placeholderProject} style={styles.savedImage} />
+                  <Text style={styles.savedLabel} numberOfLines={1}>{item.title}</Text>
+                </Pressable>
+              ))
+            )}
           </View>
         </ScrollView>
 
@@ -443,6 +450,26 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.oatmeal,
     marginBottom: spacing.sm,
+  },
+  emptyCard: {
+    width: "100%",
+    backgroundColor: colors.white,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    color: colors.charcoal,
+    fontSize: 17,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  emptyText: {
+    color: colors.mutedText,
+    fontSize: 14,
+    lineHeight: 20,
   },
   savedLabel: {
     fontSize: 12,

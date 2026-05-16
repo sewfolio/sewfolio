@@ -126,7 +126,12 @@ export default function SewfolioProjectsScreen() {
         </View>
 
         <View style={styles.workbookGrid}>
-          {workbooks.map((item: any) => {
+          {workbooks.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Create your first workbook</Text>
+              <Text style={styles.emptyText}>Organize patterns, tutorials, gifts, and makes into custom workbooks.</Text>
+            </View>
+          ) : workbooks.map((item: any) => {
             const count = projects.filter((project: any) => project.workbookId === item.id).length;
             return <WorkbookCard key={item.id} item={item} count={count} />;
           })}
@@ -201,6 +206,25 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: spacing.lg,
     justifyContent: "space-between",
+  },
+  emptyState: {
+    backgroundColor: colors.white,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginTop: spacing.md,
+  },
+  emptyTitle: {
+    color: colors.charcoal,
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  emptyText: {
+    color: colors.mutedText,
+    fontSize: 14,
+    lineHeight: 20,
   },
   workbookTitle: { fontSize: 19, color: colors.charcoal, fontWeight: "500", lineHeight: 24 },
   workbookMeta: { fontSize: 12, color: colors.mutedText },
