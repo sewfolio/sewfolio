@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return json({}, 200);
@@ -6,6 +7,29 @@ serve(async (req) => {
   try {
     const { url } = await req.json();
     if (!url) return json({ success: false, error: "Missing URL" }, 400);
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SERVICE_ROLE_KEY")!
+    );
+
+    const { data: cached } = await supabase
+      .from("imported_projects_cache")
+      .select("response_json")
+      .eq("source_url", url)
+      .maybeSingle();
+
+    if (cached?.response_json) {
+      console.log("CACHE HIT", url);
+
+      return json({
+        success: true,
+        project: cached.response_json,
+        cached: true,
+      });
+    }
+
+    console.log("CACHE MISS", url);
 
     const page = await fetch(url, {
       headers: {
@@ -23,10 +47,7 @@ serve(async (req) => {
       "Imported Sewing Project"
     );
 
-    const fallbackImage =
-      html.match(/property=["']og:image["'] content=["'](.*?)["']/i)?.[1] ||
-      html.match(/content=["'](.*?)["'] property=["']og:image["']/i)?.[1] ||
-      "";
+    const fallbackImage = extractBestImage(html, url);
 
     const metaDescription = decode(
       html.match(/name=["']description["'] content=["'](.*?)["']/i)?.[1] ||
@@ -116,20 +137,30 @@ ${combinedContent}
     const outputText = aiJson.choices?.[0]?.message?.content || "{}";
     const parsed = JSON.parse(outputText);
 
+    const project = {
+      title: decode(parsed.title || fallbackTitle),
+      sourceUrl: url,
+      sourceName: parsed.sourceName || sourceName,
+      image: parsed.image || fallbackImage || "",
+      description: decode(parsed.description || metaDescription || ""),
+      difficulty: parsed.difficulty || "",
+      estimatedTime: parsed.estimatedTime || "",
+      materials: parsed.materials || [],
+      steps: parsed.steps || [],
+      tags: parsed.tags || [],
+    };
+
+    await supabase
+      .from("imported_projects_cache")
+      .upsert({
+        source_url: url,
+        response_json: project,
+      });
+
     return json({
       success: true,
-      project: {
-        title: decode(parsed.title || fallbackTitle),
-        sourceUrl: url,
-        sourceName: parsed.sourceName || sourceName,
-        image: parsed.image || fallbackImage || "",
-        description: decode(parsed.description || metaDescription || ""),
-        difficulty: parsed.difficulty || "",
-        estimatedTime: parsed.estimatedTime || "",
-        materials: parsed.materials || [],
-        steps: parsed.steps || [],
-        tags: parsed.tags || [],
-      },
+      project,
+      cached: false,
       debug: {
         htmlLength: html.length,
         jsonLdLength: jsonLd.length,
@@ -141,6 +172,115 @@ ${combinedContent}
     return json({ success: false, error: error.message }, 500);
   }
 });
+
+
+function extractBestImage(html: string, pageUrl: string) {
+  const candidates: string[] = [];
+
+  const jsonLdImageMatches = [...html.matchAll(/"image"\s*:\s*(".*?"|\[.*?\]|\{.*?\})/gis)];
+  for (const match of jsonLdImageMatches) {
+    candidates.push(...extractUrls(match[1]));
+  }
+
+  const ogImage =
+    html.match(/property=["']og:image["'] content=["'](.*?)["']/i)?.[1] ||
+    html.match(/content=["'](.*?)["'] property=["']og:image["']/i)?.[1];
+
+  if (ogImage) candidates.push(ogImage);
+
+  const twitterImage =
+    html.match(/name=["']twitter:image["'] content=["'](.*?)["']/i)?.[1] ||
+    html.match(/property=["']twitter:image["'] content=["'](.*?)["']/i)?.[1];
+
+  if (twitterImage) candidates.push(twitterImage);
+
+  const srcsetMatches = [...html.matchAll(/srcset=["']([^"']+)["']/gi)];
+  for (const match of srcsetMatches) {
+    const urls = match[1]
+      .split(",")
+      .map((part) => part.trim().split(" ")[0])
+      .filter(Boolean);
+    candidates.push(...urls);
+  }
+
+  const imgMatches = [...html.matchAll(/<img[^>]+(?:src|data-src|data-lazy-src)=["']([^"']+)["'][^>]*>/gi)];
+  for (const match of imgMatches) {
+    candidates.push(match[1]);
+  }
+
+  const cleaned = candidates
+    .map((candidate) => normalizeImageUrl(candidate, pageUrl))
+    .filter(Boolean)
+    .filter((candidate) => !candidate.includes("logo"))
+    .filter((candidate) => !candidate.includes("avatar"))
+    .filter((candidate) => !candidate.includes("profile"))
+    .filter((candidate) => !candidate.includes("icon"))
+    .filter((candidate) => !candidate.includes("blank"))
+    .filter((candidate) => !candidate.includes("placeholder"))
+    .filter((candidate) => /\.(jpg|jpeg|png|webp)(\?|$)/i.test(candidate));
+
+  const unique = [...new Set(cleaned)];
+
+  const scored = unique
+    .map((image) => ({
+      image,
+      score:
+        scoreImage(image) +
+        (image.includes("wp-content") ? 10 : 0) +
+        (image.includes("uploads") ? 10 : 0) +
+        (image.includes("pinimg") ? 6 : 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.image || "";
+}
+
+function extractUrls(value: string) {
+  const matches = [...value.matchAll(/https?:\/\/[^"',\]\s]+/gi)];
+  return matches.map((match) => match[0]);
+}
+
+function normalizeImageUrl(value: string, pageUrl: string) {
+  try {
+    const decoded = decode(value).trim();
+
+    if (!decoded || decoded.startsWith("data:")) return "";
+
+    if (decoded.startsWith("//")) {
+      return `https:${decoded}`;
+    }
+
+    if (decoded.startsWith("http://") || decoded.startsWith("https://")) {
+      return decoded;
+    }
+
+    return new URL(decoded, pageUrl).toString();
+  } catch {
+    return "";
+  }
+}
+
+function scoreImage(image: string) {
+  let score = 0;
+
+  const widthMatch = image.match(/[-_](\d{3,4})x(\d{3,4})/);
+  if (widthMatch) {
+    const width = Number(widthMatch[1]);
+    const height = Number(widthMatch[2]);
+    score += Math.min(width, 1200) / 20;
+    score += Math.min(height, 1200) / 30;
+  }
+
+  if (image.includes("featured")) score += 25;
+  if (image.includes("hero")) score += 25;
+  if (image.includes("tutorial")) score += 20;
+  if (image.includes("sewing")) score += 20;
+  if (image.includes("pattern")) score += 15;
+  if (image.includes("finished")) score += 10;
+
+  return score;
+}
+
 
 function extractJsonLd(html: string) {
   const matches = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
