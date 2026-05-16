@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { colors, radius, spacing } from "../../../src/theme";
 import { useSewfolio } from "../../../src/store/sewfolioStore";
+import { uploadImageToStorage } from "../../../src/services/imageUpload";
 import { placeholderFabric } from "../../../src/utils/placeholders";
 
 export default function EditFabricScreen() {
@@ -34,7 +35,8 @@ export default function EditFabricScreen() {
     if (!result.canceled) setImage(result.assets[0].uri);
   }
 
-  function save() {
+  async function save() {
+    const uploadedImage = image ? await uploadImageToStorage(image, "stash") : "";
     if (!fabric) return;
 
     updateFabric(fabric.id, {
@@ -45,7 +47,7 @@ export default function EditFabricScreen() {
       color,
       brand,
       notes,
-      image,
+      image: uploadedImage,
       collectionId,
     });
 

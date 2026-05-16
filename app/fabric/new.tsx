@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { colors, radius, spacing } from "../../src/theme";
 import { useSewfolio } from "../../src/store/sewfolioStore";
+import { uploadImageToStorage } from "../../src/services/imageUpload";
 
 export default function NewFabricScreen() {
   const { addFabric, stashCollections, addStashCollection } = useSewfolio();
@@ -64,7 +65,8 @@ export default function NewFabricScreen() {
     setNewCollectionName("");
   }
 
-  function saveFabric() {
+  async function saveFabric() {
+    const uploadedImage = image ? await uploadImageToStorage(image, "stash") : "";
     const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || `fabric-${Date.now()}`;
 
     addFabric({
@@ -76,7 +78,7 @@ export default function NewFabricScreen() {
       brand,
       notes,
       collectionId,
-      image: image || "https://images.unsplash.com/photo-1604709177225-055f99402ea3?w=500",
+      image: uploadedImage,
     });
 
     router.back();

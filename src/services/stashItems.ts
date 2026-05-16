@@ -1,9 +1,15 @@
 import { supabase } from "../lib/supabase";
 
 export async function fetchStashItems() {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+
+  if (!userId) return [];
+
   const { data, error } = await supabase
     .from("stash_items")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -11,10 +17,18 @@ export async function fetchStashItems() {
 }
 
 export async function createStashItem(item: any) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+
+  if (!userId) {
+    throw new Error("You must be signed in to create a stash item.");
+  }
+
   const { data, error } = await supabase
     .from("stash_items")
     .insert([
       {
+        user_id: userId,
         collection_id: item.collectionId || item.collection_id || null,
         name: item.name,
         image: item.image || null,
@@ -36,7 +50,6 @@ export async function updateStashItemRecord(id: string, updates: any) {
   const payload: any = {};
 
   if (updates.collectionId !== undefined) payload.collection_id = updates.collectionId;
-
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.image !== undefined) payload.image = updates.image;
   if (updates.amount !== undefined) payload.amount = updates.amount;

@@ -1,9 +1,15 @@
 import { supabase } from "../lib/supabase";
 
 export async function fetchWorkbooks() {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+
+  if (!userId) return [];
+
   const { data, error } = await supabase
     .from("workbooks")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -11,9 +17,16 @@ export async function fetchWorkbooks() {
 }
 
 export async function createWorkbook(title: string, tint = "#F3DDD7") {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+
+  if (!userId) {
+    throw new Error("You must be signed in to create a workbook.");
+  }
+
   const { data, error } = await supabase
     .from("workbooks")
-    .insert([{ title, tint }])
+    .insert([{ title, tint, user_id: userId }])
     .select()
     .single();
 
