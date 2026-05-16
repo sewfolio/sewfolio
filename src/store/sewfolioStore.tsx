@@ -7,6 +7,12 @@ import {
   removeWorkbook,
   renameWorkbook,
 } from "../services/workbooks";
+import {
+  createProject,
+  fetchProjects,
+  removeProject,
+  updateProjectRecord,
+} from "../services/projects";
 
 const STORAGE_KEY = "sewfolio-data-v1";
 
@@ -65,6 +71,21 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
+        const remoteProjects = await fetchProjects();
+
+        if (remoteProjects.length > 0) {
+          setProjects(
+            remoteProjects.map((project: any) => ({
+              ...project,
+              workbookId: project.workbook_id,
+              sourceUrl: project.source_url,
+              sourceName: project.source_name,
+              image: project.hero_image,
+              estimatedTime: project.estimated_time,
+            }))
+          );
+        }
+
         const remoteWorkbooks = await fetchWorkbooks();
 
         if (remoteWorkbooks.length > 0) {
@@ -116,16 +137,39 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
     setFabrics((current) => current.filter((fabric) => fabric.id !== id));
   }
 
-  function addProject(project: any) {
-    setProjects((current) => [project, ...current]);
+  async function addProject(project: any) {
+    try {
+      const created = await createProject(project);
+
+      setProjects((current) => [
+        {
+          ...created,
+          workbookId: created.workbook_id,
+          sourceUrl: created.source_url,
+          sourceName: created.source_name,
+          image: created.hero_image,
+          estimatedTime: created.estimated_time,
+        },
+        ...current,
+      ]);
+    } catch (error) {
+      console.log("Failed to create project in Supabase", error);
+      setProjects((current) => [project, ...current]);
+    }
   }
 
-  function updateProject(id: string, updates: any) {
+  async function updateProject(id: string, updates: any) {
     setProjects((current) =>
       current.map((project) =>
         project.id === id ? { ...project, ...updates } : project
       )
     );
+
+    try {
+      await updateProjectRecord(id, updates);
+    } catch (error) {
+      console.log("Failed to update project in Supabase", error);
+    }
   }
 
   function toggleProjectFabric(projectId: string, fabricId: string) {
