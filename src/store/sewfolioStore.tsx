@@ -19,6 +19,12 @@ import {
   removeStashItem,
   updateStashItemRecord,
 } from "../services/stashItems";
+import {
+  createStashCollection,
+  fetchStashCollections,
+  removeStashCollection,
+  renameStashCollection,
+} from "../services/stashCollections";
 
 const STORAGE_KEY = "sewfolio-data-v1";
 
@@ -77,6 +83,12 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
+        const remoteStashCollections = await fetchStashCollections();
+
+        if (remoteStashCollections.length > 0) {
+          setStashCollections(remoteStashCollections);
+        }
+
         const remoteStashItems = await fetchStashItems();
 
         if (remoteStashItems.length > 0) {
@@ -272,20 +284,38 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  function addStashCollection(collection: any) {
-    setStashCollections((current) => [collection, ...current]);
+  async function addStashCollection(collection: any) {
+    try {
+      const created = await createStashCollection(collection.title, collection.tint);
+      setStashCollections((current) => [created, ...current]);
+    } catch (error) {
+      console.log("Failed to create stash collection in Supabase", error);
+      setStashCollections((current) => [collection, ...current]);
+    }
   }
 
-  function updateStashCollection(id: string, title: string) {
+  async function updateStashCollection(id: string, title: string) {
     setStashCollections((current) =>
       current.map((collection) =>
         collection.id === id ? { ...collection, title } : collection
       )
     );
+
+    try {
+      await renameStashCollection(id, title);
+    } catch (error) {
+      console.log("Failed to update stash collection in Supabase", error);
+    }
   }
 
-  function deleteStashCollection(id: string) {
+  async function deleteStashCollection(id: string) {
     setStashCollections((current) => current.filter((collection) => collection.id !== id));
+
+    try {
+      await removeStashCollection(id);
+    } catch (error) {
+      console.log("Failed to delete stash collection in Supabase", error);
+    }
   }
 
   function updateProjectProgress(id: string, progress: number) {

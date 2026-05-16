@@ -15,7 +15,7 @@ export async function createStashItem(item: any) {
     .from("stash_items")
     .insert([
       {
-        collection_id: null,
+        collection_id: item.collectionId || item.collection_id || null,
         name: item.name,
         image: item.image || null,
         amount: item.amount || item.yardage || null,
@@ -35,8 +35,7 @@ export async function createStashItem(item: any) {
 export async function updateStashItemRecord(id: string, updates: any) {
   const payload: any = {};
 
-  // collection_id requires a Supabase UUID. Local collection IDs are strings for now.
-  // Do not sync collection_id until stash_collections are migrated.
+  if (updates.collectionId !== undefined) payload.collection_id = updates.collectionId;
 
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.image !== undefined) payload.image = updates.image;
