@@ -3,6 +3,7 @@ import { Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } fr
 import { router, useLocalSearchParams } from "expo-router";
 import { colors, radius, spacing, shadows } from "../../src/theme";
 import { useSewfolio } from "../../src/store/sewfolioStore";
+import { placeholderFabric } from "../../src/utils/placeholders";
 
 export default function FabricDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -29,7 +30,7 @@ export default function FabricDetailScreen() {
         </View>
 
         <View style={styles.heroCard}>
-          <Image source={{ uri: fabric.image }} style={styles.image} />
+          <Image source={fabric.image ? { uri: fabric.image } : placeholderFabric} style={styles.image} />
 
           <View style={styles.heroBody}>
             <Text style={styles.title}>{fabric.name}</Text>

@@ -3,6 +3,7 @@ import { Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput
 import { router } from "expo-router";
 import { colors, radius, spacing, shadows } from "../theme";
 import { useSewfolio } from "../store/sewfolioStore";
+import { placeholderFabric } from "../utils/placeholders";
 import HomeIcon from "../../assets/icons/home.svg";
 import ProjectsIcon from "../../assets/icons/projects.svg";
 import StashIcon from "../../assets/icons/stash.svg";
@@ -166,7 +167,7 @@ export default function SewfolioStashScreen() {
         <View style={styles.grid}>
           {filteredFabrics.map((item: any) => (
             <Pressable key={item.id} style={styles.card} onPress={() => router.push(`/fabric/${item.id}`)}>
-              <Image source={{ uri: item.image }} style={styles.image} />
+              <Image source={item.image ? { uri: item.image } : placeholderFabric} style={styles.image} />
               <View style={styles.cardBody}>
                 <Text style={styles.title}>{item.name}</Text>
                 <Text style={styles.yardage}>{item.yardage}</Text>

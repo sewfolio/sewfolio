@@ -3,6 +3,7 @@ import { Image, Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, 
 import { router, useLocalSearchParams } from "expo-router";
 import { colors, radius, spacing, shadows } from "../../src/theme";
 import { useSewfolio } from "../../src/store/sewfolioStore";
+import { placeholderProject } from "../../src/utils/placeholders";
 
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -27,9 +28,20 @@ export default function ProjectDetailScreen() {
     "Read through instructions before cutting.",
   ];
 
-  function openSource() {
-    if (project.sourceUrl) {
-      Linking.openURL(project.sourceUrl);
+  async function openSource() {
+    const url = project.sourceUrl || "";
+
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      return;
+    }
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      }
+    } catch (error) {
+      console.log("Unable to open source URL", error);
     }
   }
 
@@ -43,13 +55,13 @@ export default function ProjectDetailScreen() {
 
           <Text style={styles.heading}>Project</Text>
 
-          <Pressable style={styles.editButton}>
+          <Pressable onPress={() => router.push(`/project/edit/${project.id}`)} style={styles.editButton}>
             <Text style={styles.editText}>Edit</Text>
           </Pressable>
         </View>
 
         <View style={styles.heroCard}>
-          <Image source={{ uri: project.image }} style={styles.heroImage} />
+          <Image source={project.image ? { uri: project.image } : placeholderProject} style={styles.heroImage} />
 
           <View style={styles.heroBody}>
             <Text style={styles.eyebrow}>{workbook?.title || "Saved Project"}</Text>
@@ -59,7 +71,7 @@ export default function ProjectDetailScreen() {
               {project.sourceUrl ? "Imported from online source" : "Manually saved project"}
             </Text>
 
-            {project.sourceUrl ? (
+            {project.sourceUrl?.startsWith("http") ? (
               <Pressable onPress={openSource} style={styles.sourceButton}>
                 <Text style={styles.sourceButtonText}>Open Original Post</Text>
               </Pressable>

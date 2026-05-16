@@ -13,6 +13,8 @@ import {
   removeProject,
   updateProjectRecord,
 } from "../services/projects";
+import { replaceProjectMaterials } from "../services/projectMaterials";
+import { replaceProjectSteps } from "../services/projectSteps";
 import {
   createStashItem,
   fetchStashItems,
@@ -52,6 +54,7 @@ type SewfolioContextType = {
   deleteFabric: (id: string) => void;
   addProject: (project: any) => void;
   updateProject: (id: string, updates: any) => void;
+  deleteProject: (id: string) => Promise<void>;
   toggleProjectFabric: (projectId: string, fabricId: string) => void;
   addWorkbook: (workbook: any) => Promise<void>;
   updateWorkbook: (id: string, title: string) => Promise<void>;
@@ -197,6 +200,14 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
     try {
       const created = await createProject(project);
 
+      if (project.materials?.length) {
+        await replaceProjectMaterials(created.id, project.materials);
+      }
+
+      if (project.steps?.length) {
+        await replaceProjectSteps(created.id, project.steps);
+      }
+
       setProjects((current) => [
         {
           ...created,
@@ -205,6 +216,8 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
           sourceName: created.source_name,
           image: created.hero_image,
           estimatedTime: created.estimated_time,
+          materials: project.materials || [],
+          steps: project.steps || [],
         },
         ...current,
       ]);
@@ -318,6 +331,16 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function deleteProject(id: string) {
+    setProjects((current) => current.filter((project) => project.id !== id));
+
+    try {
+      await removeProject(id);
+    } catch (error) {
+      console.log("Failed to delete project in Supabase", error);
+    }
+  }
+
   function updateProjectProgress(id: string, progress: number) {
     setProjects((current) =>
       current.map((project) =>
@@ -338,6 +361,7 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
         deleteFabric,
         addProject,
         updateProject,
+        deleteProject,
         toggleProjectFabric,
         addWorkbook,
         updateWorkbook,

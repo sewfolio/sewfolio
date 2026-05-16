@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { colors, radius, spacing } from "../../../src/theme";
 import { useSewfolio } from "../../../src/store/sewfolioStore";
+import { placeholderFabric } from "../../../src/utils/placeholders";
 
 export default function EditFabricScreen() {
   const { id } = useLocalSearchParams();

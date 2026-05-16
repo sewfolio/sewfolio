@@ -15,6 +15,7 @@ import StashIcon from "../../assets/icons/stash.svg";
 import ProfileIcon from "../../assets/icons/profile.svg";
 import { colors, radius, shadows, spacing } from "../theme";
 import { useSewfolio } from "../store/sewfolioStore";
+import { placeholderProject } from "../utils/placeholders";
 
 function ProgressBar({ progress }: { progress: number }) {
   return (
@@ -49,7 +50,7 @@ function StatCard({ number, label, icon, tint }: any) {
 function MiniProjectCard({ item }: any) {
   return (
     <Pressable style={styles.miniProjectCard} onPress={() => router.push(`/project/${item.id}`)}>
-      <Image source={{ uri: item.image }} style={styles.miniImage} />
+      <Image source={item.image ? { uri: item.image } : placeholderProject} style={styles.miniImage} />
       <View style={styles.miniContent}>
         <Text style={styles.miniTitle}>{item.title}</Text>
         <Text style={styles.miniMeta}>{item.status} · Last edited today</Text>
@@ -144,7 +145,7 @@ export default function SewfolioHomeScreen() {
         </View>
 
         {projects.slice(1).map((item) => (
-          <MiniProjectCard key={item.title} item={item} />
+          <MiniProjectCard key={item.id} item={item} />
         ))}
 
         <View style={styles.sectionHeaderLarge}>
@@ -155,8 +156,8 @@ export default function SewfolioHomeScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.savedRow}>
             {projects.map((item) => (
-              <Pressable key={item.title} style={styles.savedCard} onPress={() => router.push(`/project/${item.id}`)}>
-                <Image source={{ uri: item.image }} style={styles.savedImage} />
+              <Pressable key={item.id} style={styles.savedCard} onPress={() => router.push(`/project/${item.id}`)}>
+                <Image source={item.image ? { uri: item.image } : placeholderProject} style={styles.savedImage} />
                 <Text style={styles.savedLabel} numberOfLines={1}>{item.title}</Text>
               </Pressable>
             ))}
@@ -171,7 +172,7 @@ export default function SewfolioHomeScreen() {
         <View style={styles.stashRow}>
           {fabrics.slice(0, 2).map((item) => (
             <Pressable key={item.name} style={styles.fabricCard} onPress={() => router.push(`/fabric/${item.id}`)}>
-              <Image source={{ uri: item.image }} style={styles.fabricImage} />
+              <Image source={item.image ? { uri: item.image } : placeholderProject} style={styles.fabricImage} />
               <Text style={styles.fabricTitle}>{item.name}</Text>
               <Text style={styles.fabricMeta}>{item.yardage}</Text>
             </Pressable>

@@ -3,83 +3,210 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View 
 import { router, useLocalSearchParams } from "expo-router";
 import { colors, radius, spacing } from "../../../src/theme";
 import { useSewfolio } from "../../../src/store/sewfolioStore";
+import { replaceProjectMaterials } from "../../../src/services/projectMaterials";
+import { replaceProjectSteps } from "../../../src/services/projectSteps";
 
 export default function EditProjectScreen() {
   const { id } = useLocalSearchParams();
-  const { projects, workbooks, updateProject } = useSewfolio();
+  const { projects, workbooks, updateProject, deleteProject } = useSewfolio();
+
   const project = projects.find((item: any) => item.id === id) || projects[0];
 
   const [title, setTitle] = useState(project.title || "");
-  const [pattern, setPattern] = useState(project.pattern || "");
-  const [fabric, setFabric] = useState(project.fabric || "");
-  const [dueDate, setDueDate] = useState(project.dueDate || "");
+  const [sourceUrl, setSourceUrl] = useState(project.sourceUrl || "");
+  const [description, setDescription] = useState(project.description || "");
+  const [difficulty, setDifficulty] = useState(project.difficulty || "");
+  const [estimatedTime, setEstimatedTime] = useState(project.estimatedTime || "");
   const [notes, setNotes] = useState(project.notes || "");
-  const [workbookId, setWorkbookId] = useState(project.workbookId || workbooks[0]?.id || "");
+  const [workbookId, setWorkbookId] = useState(project.workbookId || "");
 
-  function save() {
-    updateProject(String(project.id), {
+  const [materialsText, setMaterialsText] = useState(
+    (project.materials || [])
+      .map((item: any) => `${item.name}${item.amount ? ` | ${item.amount}` : ""}${item.type ? ` | ${item.type}` : ""}`)
+      .join("\n")
+  );
+
+  const [stepsText, setStepsText] = useState(
+    (project.steps || [])
+      .map((step: any) => (typeof step === "string" ? step : step.text))
+      .join("\n")
+  );
+
+  function parseMaterials() {
+    return materialsText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [name, amount, type] = line.split("|").map((part) => part.trim());
+        return {
+          name,
+          amount: amount || "",
+          type: type || "material",
+        };
+      });
+  }
+
+  function parseSteps() {
+    return stepsText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((text, index) => ({
+        order: index + 1,
+        text,
+      }));
+  }
+
+  async function removeProjectNow() {
+    await deleteProject(project.id);
+    router.replace("/(tabs)/explore");
+  }
+
+  async function saveProject() {
+    const materials = parseMaterials();
+    const steps = parseSteps();
+
+    updateProject(project.id, {
       title,
-      pattern,
-      fabric,
-      dueDate,
-      notes,
       workbookId,
+      sourceUrl,
+      description,
+      difficulty,
+      estimatedTime,
+      notes,
+      materials,
+      steps,
     });
+
+    try {
+      await replaceProjectMaterials(project.id, materials);
+      await replaceProjectSteps(project.id, steps);
+    } catch (error) {
+      console.log("Failed to save materials or steps", error);
+    }
 
     router.back();
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.back}>
             <Text style={styles.backText}>‹</Text>
           </Pressable>
+
           <Text style={styles.heading}>Edit Project</Text>
-          <View style={styles.spacer} />
+
+          <Pressable onPress={saveProject} style={styles.saveTop}>
+            <Text style={styles.saveTopText}>Save</Text>
+          </Pressable>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Project name</Text>
+          <Text style={styles.label}>Project title</Text>
           <TextInput style={styles.input} value={title} onChangeText={setTitle} />
 
           <Text style={styles.label}>Workbook</Text>
-          <View style={styles.workbookGrid}>
-            {workbooks.map((item: any) => (
+          <View style={styles.chipRow}>
+            {workbooks.map((workbook: any) => (
               <Pressable
-                key={item.id}
-                onPress={() => setWorkbookId(item.id)}
-                style={[styles.workbookChip, workbookId === item.id && styles.workbookChipActive]}
+                key={workbook.id}
+                onPress={() => setWorkbookId(workbook.id)}
+                style={workbookId === workbook.id ? styles.chipActive : styles.chip}
               >
-                <Text style={[styles.workbookChipText, workbookId === item.id && styles.workbookChipTextActive]}>
-                  {item.title}
+                <Text style={workbookId === workbook.id ? styles.chipTextActive : styles.chipText}>
+                  {workbook.title || workbook.name}
                 </Text>
               </Pressable>
             ))}
           </View>
 
-          <Text style={styles.label}>Pattern</Text>
-          <TextInput style={styles.input} value={pattern} onChangeText={setPattern} placeholder="Pattern name or source" placeholderTextColor={colors.mutedText} />
-
-          <Text style={styles.label}>Fabric</Text>
-          <TextInput style={styles.input} value={fabric} onChangeText={setFabric} placeholder="Fabric used" placeholderTextColor={colors.mutedText} />
-
-          <Text style={styles.label}>Due date</Text>
-          <TextInput style={styles.input} value={dueDate} onChangeText={setDueDate} placeholder="Not set" placeholderTextColor={colors.mutedText} />
-
-          <Text style={styles.label}>Notes</Text>
+          <Text style={styles.label}>Original source link</Text>
           <TextInput
-            style={[styles.input, styles.notes]}
-            value={notes}
-            onChangeText={setNotes}
+            style={styles.input}
+            value={sourceUrl}
+            onChangeText={setSourceUrl}
+            placeholder="https://..."
+            placeholderTextColor={colors.mutedText}
+            autoCapitalize="none"
+          />
+
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={description}
+            onChangeText={setDescription}
             multiline
-            placeholder="Project notes"
+            placeholder="Short project summary"
             placeholderTextColor={colors.mutedText}
           />
 
-          <Pressable onPress={save} style={styles.button}>
-            <Text style={styles.buttonText}>Save Changes</Text>
+          <Text style={styles.label}>Difficulty</Text>
+          <TextInput
+            style={styles.input}
+            value={difficulty}
+            onChangeText={setDifficulty}
+            placeholder="Beginner, intermediate, advanced..."
+            placeholderTextColor={colors.mutedText}
+          />
+
+          <Text style={styles.label}>Estimated time</Text>
+          <TextInput
+            style={styles.input}
+            value={estimatedTime}
+            onChangeText={setEstimatedTime}
+            placeholder="2 hours, weekend project..."
+            placeholderTextColor={colors.mutedText}
+          />
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Materials</Text>
+          <Text style={styles.helpText}>One item per line. Use: name | amount | type</Text>
+
+          <TextInput
+            style={[styles.input, styles.largeTextArea]}
+            value={materialsText}
+            onChangeText={setMaterialsText}
+            multiline
+            placeholder={"Fabric | 1 yard | fabric\nZipper | 14 inch | notion\nThread | matching | notion"}
+            placeholderTextColor={colors.mutedText}
+          />
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Steps</Text>
+          <Text style={styles.helpText}>One step per line.</Text>
+
+          <TextInput
+            style={[styles.input, styles.largeTextArea]}
+            value={stepsText}
+            onChangeText={setStepsText}
+            multiline
+            placeholder={"Cut fabric pieces\nSew exterior panels\nAttach zipper\nAdd lining\nTopstitch and finish"}
+            placeholderTextColor={colors.mutedText}
+          />
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>Notes</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            placeholder="Fit notes, reminders, changes, ideas..."
+            placeholderTextColor={colors.mutedText}
+          />
+
+          <Pressable onPress={saveProject} style={styles.saveButton}>
+            <Text style={styles.saveButtonText}>Save Project</Text>
+          </Pressable>
+
+          <Pressable onPress={removeProjectNow} style={styles.deleteButton}>
+            <Text style={styles.deleteButtonText}>Delete Project</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -90,20 +217,31 @@ export default function EditProjectScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream },
   content: { paddingTop: 70, paddingHorizontal: spacing.lg, paddingBottom: 50 },
+
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.xl },
   back: { width: 44, height: 44, borderRadius: radius.round, backgroundColor: colors.white, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border },
   backText: { fontSize: 34, color: colors.charcoal, marginTop: -4 },
-  spacer: { width: 44 },
-  heading: { fontSize: 30, color: colors.charcoal, fontWeight: "400" },
-  card: { backgroundColor: colors.white, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.lg },
+  heading: { fontSize: 28, color: colors.charcoal, fontWeight: "400" },
+  saveTop: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.round, backgroundColor: colors.sage },
+  saveTopText: { color: colors.white, fontSize: 13, fontWeight: "600" },
+
+  card: { backgroundColor: colors.white, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.md },
   label: { fontSize: 14, color: colors.charcoal, fontWeight: "500", marginBottom: spacing.sm, marginTop: spacing.md },
-  input: { height: 54, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cream, paddingHorizontal: spacing.lg, color: colors.charcoal, fontSize: 15 },
-  notes: { height: 120, paddingTop: spacing.md },
-  workbookGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  workbookChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.round, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
-  workbookChipActive: { backgroundColor: colors.sage, borderColor: colors.sage },
-  workbookChipText: { fontSize: 13, color: colors.charcoal },
-  workbookChipTextActive: { color: colors.white, fontWeight: "600" },
-  button: { height: 54, borderRadius: radius.round, backgroundColor: colors.sage, alignItems: "center", justifyContent: "center", marginTop: spacing.xl },
-  buttonText: { color: colors.white, fontSize: 16, fontWeight: "600" },
+  sectionTitle: { fontSize: 20, color: colors.charcoal, fontWeight: "500", marginBottom: spacing.sm },
+  helpText: { fontSize: 13, color: colors.mutedText, lineHeight: 19, marginBottom: spacing.md },
+
+  input: { minHeight: 52, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cream, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, color: colors.charcoal, fontSize: 15 },
+  textArea: { height: 110, textAlignVertical: "top" },
+  largeTextArea: { height: 190, textAlignVertical: "top" },
+
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.md },
+  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.round, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  chipActive: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.round, backgroundColor: colors.sage, borderWidth: 1, borderColor: colors.sage },
+  chipText: { color: colors.charcoal, fontSize: 13 },
+  chipTextActive: { color: colors.white, fontSize: 13, fontWeight: "600" },
+
+  saveButton: { height: 54, borderRadius: radius.round, backgroundColor: colors.sage, alignItems: "center", justifyContent: "center", marginTop: spacing.xl },
+  saveButtonText: { color: colors.white, fontSize: 16, fontWeight: "600" },
+  deleteButton: { height: 54, borderRadius: radius.round, backgroundColor: "#F3DDD7", alignItems: "center", justifyContent: "center", marginTop: spacing.md },
+  deleteButtonText: { color: colors.clay, fontSize: 16, fontWeight: "600" },
 });

@@ -3,6 +3,7 @@ import { Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput
 import { router } from "expo-router";
 import { colors, radius, spacing, shadows } from "../theme";
 import { useSewfolio } from "../store/sewfolioStore";
+import { placeholderProject } from "../utils/placeholders";
 import HomeIcon from "../../assets/icons/home.svg";
 import ProjectsIcon from "../../assets/icons/projects.svg";
 import StashIcon from "../../assets/icons/stash.svg";
@@ -66,7 +67,7 @@ function WorkbookCard({ item, count }: any) {
 function SavedProjectCard({ item }: any) {
   return (
     <Pressable style={styles.projectCard} onPress={() => router.push(`/project/${item.id}`)}>
-      <Image source={{ uri: item.image }} style={styles.projectImage} />
+      <Image source={item.image ? { uri: item.image } : placeholderProject} style={styles.projectImage} />
       <View style={styles.projectBody}>
         <Text style={styles.projectTitle}>{item.title}</Text>
         <Text style={styles.projectMeta}>{item.pattern || "Saved project"} · {item.fabric || "No fabric selected"}</Text>
