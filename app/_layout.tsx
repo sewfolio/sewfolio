@@ -1,17 +1,10 @@
 import { Stack } from "expo-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const queryClient = new QueryClient();
+import { SewfolioProvider } from "../src/store/sewfolioStore";
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: "none",
-        }}
-      />
-    </QueryClientProvider>
+    <SewfolioProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </SewfolioProvider>
   );
 }

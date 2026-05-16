@@ -14,7 +14,7 @@ import ProjectsIcon from "../../assets/icons/projects.svg";
 import StashIcon from "../../assets/icons/stash.svg";
 import ProfileIcon from "../../assets/icons/profile.svg";
 import { colors, radius, shadows, spacing } from "../theme";
-import { projects, fabrics } from "../data/mockData";
+import { useSewfolio } from "../store/sewfolioStore";
 
 function ProgressBar({ progress }: { progress: number }) {
   return (
@@ -27,7 +27,7 @@ function ProgressBar({ progress }: { progress: number }) {
 
 function NavIcon({ type, active = false }: { type: string; active?: boolean }) {
   const color = active ? colors.clay : colors.sage;
-  const size = 28;
+  const size = 34;
 
   if (type === "home") return <HomeIcon width={size} height={size} color={color} />;
   if (type === "projects") return <ProjectsIcon width={size} height={size} color={color} />;
@@ -53,9 +53,9 @@ function MiniProjectCard({ item }: any) {
       <View style={styles.miniContent}>
         <Text style={styles.miniTitle}>{item.title}</Text>
         <Text style={styles.miniMeta}>{item.status} · Last edited today</Text>
-        <View style={styles.miniProgressRow}>
-          <ProgressBar progress={item.progress} />
-          <Text style={styles.percent}>{item.progress}%</Text>
+        <View style={styles.tagRow}>
+          <Text style={styles.tag}>{item.category || "Saved"}</Text>
+          {item.sourceUrl ? <Text style={styles.tag}>Online</Text> : <Text style={styles.tag}>Manual</Text>}
         </View>
       </View>
     </Pressable>
@@ -93,6 +93,7 @@ function BottomNav() {
 }
 
 export default function SewfolioHomeScreen() {
+  const { projects, fabrics } = useSewfolio();
   const featured = projects[0];
 
   return (
@@ -120,28 +121,26 @@ export default function SewfolioHomeScreen() {
           <StatCard number="23" label="Ideas" tint="#E9E5D9" />
         </View>
 
-        <View style={styles.heroCard}>
+        <Pressable style={styles.heroCard} onPress={() => router.push(`/project/${featured.id}`)}>
           <Image source={{ uri: featured.image }} style={styles.heroImage} />
           <View style={styles.heroContent}>
             <View style={styles.heroTopRow}>
               <Text style={styles.eyebrow}>Continue Working</Text>
-              <Text style={styles.heroPercent}>{featured.progress}%</Text>
+              
             </View>
 
             <Text style={styles.heroTitle}>{featured.title}</Text>
             <Text style={styles.heroMeta}>Pattern: Estuary Dress · Fabric: Washed linen</Text>
 
-            <ProgressBar progress={featured.progress} />
-
             <Pressable onPress={() => router.push(`/project/${featured.id}`)} style={styles.resumeButton}>
               <Text style={styles.resumeText}>Resume Project</Text>
             </Pressable>
           </View>
-        </View>
+        </Pressable>
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>In Progress</Text>
-          <Pressable onPress={() => router.push("/(tabs)/explore")}><Pressable onPress={() => router.push("/(tabs)/explore")}><Text style={styles.seeAll}>See all</Text></Pressable></Pressable>
+          <Pressable onPress={() => router.push("/(tabs)/explore")}><Pressable onPress={() => router.push("/(tabs)/explore")}><Pressable onPress={() => router.push("/(tabs)/explore")}><Text style={styles.seeAll}>See all</Text></Pressable></Pressable></Pressable>
         </View>
 
         {projects.slice(1).map((item) => (
@@ -150,32 +149,32 @@ export default function SewfolioHomeScreen() {
 
         <View style={styles.sectionHeaderLarge}>
           <Text style={styles.sectionTitle}>Recently Saved</Text>
-          <Text style={styles.seeAll}>See all</Text>
+          <Pressable onPress={() => router.push("/(tabs)/explore")}><Text style={styles.seeAll}>See all</Text></Pressable>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.savedRow}>
             {projects.map((item) => (
-              <View key={item.title} style={styles.savedCard}>
+              <Pressable key={item.title} style={styles.savedCard} onPress={() => router.push(`/project/${item.id}`)}>
                 <Image source={{ uri: item.image }} style={styles.savedImage} />
                 <Text style={styles.savedLabel} numberOfLines={1}>{item.title}</Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         </ScrollView>
 
         <View style={styles.sectionHeaderLarge}>
           <Text style={styles.sectionTitle}>Stash Snapshot</Text>
-          <Pressable onPress={() => router.push("/stash")}><Text style={styles.seeAll}>View stash</Text></Pressable>
+          <Pressable onPress={() => router.push("/stash")}><Pressable onPress={() => router.push("/stash")}><Text style={styles.seeAll}>View stash</Text></Pressable></Pressable>
         </View>
 
         <View style={styles.stashRow}>
           {fabrics.slice(0, 2).map((item) => (
-            <View key={item.name} style={styles.fabricCard}>
+            <Pressable key={item.name} style={styles.fabricCard} onPress={() => router.push(`/fabric/${item.id}`)}>
               <Image source={{ uri: item.image }} style={styles.fabricImage} />
               <Text style={styles.fabricTitle}>{item.name}</Text>
               <Text style={styles.fabricMeta}>{item.yardage}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
 
@@ -397,6 +396,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
+  },
+  tagRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  tag: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.round,
+    backgroundColor: colors.ivory,
+    color: colors.charcoal,
+    fontSize: 11,
+    overflow: "hidden",
   },
 
   progressTrack: {
