@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
+import { useSewfolio } from "../../src/store/sewfolioStore";
 import { colors, radius, spacing, shadows } from "../../src/theme";
 
 import HomeIcon from "../../assets/icons/home.svg";
@@ -59,6 +60,11 @@ async function handleSignOut() {
 }
 
 export default function ProfileScreen() {
+  const { projects } = useSewfolio();
+
+  const finishedProjects = projects.filter((project: any) => project.status === "finished");
+  const wipProjects = projects.filter((project: any) => project.status !== "finished");
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -91,15 +97,15 @@ export default function ProfileScreen() {
 
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>12</Text>
+            <Text style={styles.statNumber}>{projects.length}</Text>
             <Text style={styles.statLabel}>Projects</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>5</Text>
+            <Text style={styles.statNumber}>{wipProjects.length}</Text>
             <Text style={styles.statLabel}>WIPs</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>8</Text>
+            <Text style={styles.statNumber}>{finishedProjects.length}</Text>
             <Text style={styles.statLabel}>Finished</Text>
           </View>
         </View>

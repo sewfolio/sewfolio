@@ -60,6 +60,7 @@ export async function updateProjectRecord(id: string, updates: any) {
   if (updates.difficulty !== undefined) payload.difficulty = updates.difficulty;
   if (updates.estimatedTime !== undefined) payload.estimated_time = updates.estimatedTime;
   if (updates.notes !== undefined) payload.notes = updates.notes;
+  if (updates.status !== undefined) payload.status = updates.status;
 
   const { data, error } = await supabase
     .from("projects")

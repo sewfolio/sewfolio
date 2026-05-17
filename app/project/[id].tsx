@@ -7,7 +7,7 @@ import { placeholderProject } from "../../src/utils/placeholders";
 
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams();
-  const { projects, fabrics, workbooks } = useSewfolio();
+  const { projects, fabrics, workbooks, updateProjectStatus } = useSewfolio();
 
   const project = projects.find((item: any) => item.id === id) || projects[0];
   const workbook = workbooks.find((item: any) => item.id === project?.workbookId);
@@ -66,6 +66,27 @@ export default function ProjectDetailScreen() {
           <View style={styles.heroBody}>
             <Text style={styles.eyebrow}>{workbook?.title || "Saved Project"}</Text>
             <Text style={styles.title}>{project.title}</Text>
+
+            <View style={styles.actionRow}>
+              <Pressable
+                onPress={() => updateProjectStatus(project.id, project.status === "finished" ? "in_progress" : "finished")}
+                style={project.status === "finished" ? styles.finishedButton : styles.statusButton}
+              >
+                <Text style={styles.statusButtonText}>
+                  {project.status === "finished" ? "Marked Finished" : "Mark Finished"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push({
+  pathname: "/project/shopping/[id]",
+  params: { id: project.id }
+})}
+                style={styles.shoppingButton}
+              >
+                <Text style={styles.shoppingButtonText}>Shopping List</Text>
+              </Pressable>
+            </View>
 
             <View style={styles.sourceMetaRow}>
               <Text style={project.sourceUrl ? styles.importedBadge : styles.manualBadge}>
@@ -281,4 +302,46 @@ const styles = StyleSheet.create({
   sourceBox: { backgroundColor: colors.cream, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.md, marginTop: spacing.lg },
   sourceLabel: { fontSize: 12, color: colors.clay, textTransform: "uppercase", letterSpacing: 1.1, marginBottom: 6 },
   sourceUrl: { fontSize: 13, color: colors.mutedText, lineHeight: 19 },
+  actionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  shoppingButton: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.white,
+    borderRadius: radius.round,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  shoppingButtonText: {
+    color: colors.charcoal,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  statusButton: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.sage,
+    borderRadius: radius.round,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    marginTop: spacing.md,
+  },
+  finishedButton: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.clay,
+    borderRadius: radius.round,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    marginTop: spacing.md,
+  },
+  statusButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
 });

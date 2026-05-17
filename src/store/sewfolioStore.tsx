@@ -64,6 +64,7 @@ type SewfolioContextType = {
   updateStashCollection: (id: string, title: string) => void;
   deleteStashCollection: (id: string) => void;
   updateProjectProgress: (id: string, progress: number) => void;
+  updateProjectStatus: (id: string, status: string) => void;
 };
 
 const SewfolioContext = createContext<SewfolioContextType | null>(null);
@@ -349,6 +350,10 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function updateProjectStatus(id: string, status: string) {
+    updateProject(id, { status });
+  }
+
   function updateProjectProgress(id: string, progress: number) {
     setProjects((current) =>
       current.map((project) =>
@@ -378,6 +383,7 @@ export function SewfolioProvider({ children }: { children: React.ReactNode }) {
         updateStashCollection,
         deleteStashCollection,
         updateProjectProgress,
+        updateProjectStatus,
       }}
     >
       {children}
