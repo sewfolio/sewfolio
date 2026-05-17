@@ -21,6 +21,8 @@ export default function ImportProjectLinkScreen() {
   const [selectedWorkbookId, setSelectedWorkbookId] = useState(workbooks[0]?.id || "");
   const [newWorkbookName, setNewWorkbookName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [statusText, setStatusText] = useState("");
 
   function cleanText(value: string) {
     return value
@@ -37,7 +39,13 @@ export default function ImportProjectLinkScreen() {
 
     try {
       setLoading(true);
+      setStatusText("Importing tutorial...");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      setStatusText("Extracting materials...");
       const imported = await importProjectFromUrl(url.trim());
+
+      setStatusText("Building project steps...");
 
       setTitle(cleanText(imported.title || ""));
       setImage(imported.image || "");
@@ -47,8 +55,10 @@ export default function ImportProjectLinkScreen() {
       setSteps(imported.steps || []);
     } catch (error) {
       console.log("Import failed", error);
+      setStatusText("Import failed. Try another link.");
     } finally {
       setLoading(false);
+      setTimeout(() => setStatusText(""), 1200);
     }
   }
 
@@ -69,25 +79,39 @@ export default function ImportProjectLinkScreen() {
   }
 
   async function saveProject() {
-    const cleanTitle = title || "Saved Online Project";
+    if (saving) return;
+
+    try {
+      setSaving(true);
+      setStatusText("Saving project...");
+
+      const cleanTitle = title || "Saved Online Project";
     const id = cleanTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-") || `project-${Date.now()}`;
 
-    await addProject({
-      id,
-      title: cleanTitle,
-      workbookId: selectedWorkbookId,
-      sourceUrl: url,
-      sourceName,
-      image,
-      description,
-      difficulty: "",
-      estimatedTime: "",
-      notes: url ? `Saved from: ${url}` : "",
-      materials,
-      steps,
-    });
+      await addProject({
+        id,
+        title: cleanTitle,
+        workbookId: selectedWorkbookId,
+        sourceUrl: url,
+        sourceName,
+        image,
+        description,
+        difficulty: "",
+        estimatedTime: "",
+        notes: url ? `Saved from: ${url}` : "",
+        materials,
+        steps,
+      });
 
-    router.replace("/(tabs)/explore");
+      setStatusText("Project saved.");
+      router.replace("/(tabs)/explore");
+    } catch (error) {
+      console.log("Save project failed", error);
+      setStatusText("Save failed. Try again.");
+    } finally {
+      setSaving(false);
+      setTimeout(() => setStatusText(""), 1200);
+    }
   }
 
   return (
@@ -112,13 +136,21 @@ export default function ImportProjectLinkScreen() {
             autoCapitalize="none"
           />
 
-          <Pressable onPress={importDetails} style={styles.importButton}>
+          <Pressable
+            onPress={importDetails}
+            disabled={loading || saving}
+            style={[styles.importButton, (loading || saving) && styles.disabledButton]}
+          >
             {loading ? (
               <ActivityIndicator color={colors.white} />
             ) : (
               <Text style={styles.importButtonText}>Import Details from Link</Text>
             )}
           </Pressable>
+
+          {statusText ? (
+            <Text style={styles.statusText}>{statusText}</Text>
+          ) : null}
         </View>
 
         <View style={styles.card}>
@@ -233,8 +265,16 @@ export default function ImportProjectLinkScreen() {
             </Pressable>
           </View>
 
-          <Pressable onPress={saveProject} style={styles.button}>
-            <Text style={styles.buttonText}>Save Project</Text>
+          <Pressable
+            onPress={saveProject}
+            disabled={loading || saving}
+            style={[styles.button, (loading || saving) && styles.disabledButton]}
+          >
+            {saving ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Text style={styles.buttonText}>Save Project</Text>
+            )}
           </Pressable>
         </View>
       </ScrollView>
@@ -262,6 +302,14 @@ const styles = StyleSheet.create({
 
   importButton: { height: 54, borderRadius: radius.round, backgroundColor: colors.sage, alignItems: "center", justifyContent: "center", marginTop: spacing.lg },
   importButtonText: { color: colors.white, fontSize: 16, fontWeight: "600" },
+  disabledButton: { opacity: 0.65 },
+  statusText: {
+    color: colors.clay,
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: spacing.md,
+    textAlign: "center",
+  },
 
   emptyText: { color: colors.mutedText, fontSize: 14, lineHeight: 22 },
   row: { flexDirection: "row", gap: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
