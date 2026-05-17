@@ -6,7 +6,12 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: { display: "none" },
+        animation: "none",
       }}
-    />
+    >
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="explore" />
+      <Tabs.Screen name="profile" />
+    </Tabs>
   );
 }
