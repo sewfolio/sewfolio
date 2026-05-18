@@ -49,7 +49,7 @@ export default function RootLayout() {
       }
 
       if (session && onboardingComplete && (inAuth || inOnboarding)) {
-        router.replace("/splash");
+        router.replace("/(tabs)");
       }
     }
 

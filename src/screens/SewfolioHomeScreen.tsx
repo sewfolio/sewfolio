@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { colors, radius, spacing, shadows } from "../theme";
 import { useSewfolio } from "../store/sewfolioStore";
 import { placeholderProject, placeholderFabric } from "../utils/placeholders";
+import QuickActions from "../components/home/QuickActions";
 
 import HomeIcon from "../../assets/icons/home.svg";
 import ProjectsIcon from "../../assets/icons/projects.svg";
@@ -69,15 +70,7 @@ export default function SewfolioHomeScreen() {
           <Image source={require("../../assets/images/sewfolio-mark.png")} style={styles.mark} />
         </View>
 
-        <Pressable style={styles.importCard} onPress={() => router.push("/project/import-link")}>
-          <View>
-            <Text style={styles.importTitle}>Save an online project</Text>
-            <Text style={styles.importText}>Paste a pattern, blog, video, or Pinterest link.</Text>
-          </View>
-          <View style={styles.importButton}>
-            <Text style={styles.importButtonText}>Import</Text>
-          </View>
-        </Pressable>
+        <QuickActions />
 
         <View style={styles.statRow}>
           <View style={styles.statCard}>

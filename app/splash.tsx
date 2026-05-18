@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Image, SafeAreaView, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
 import { colors, radius, spacing } from "../src/theme";
 
 export default function SplashScreen() {
@@ -16,9 +15,7 @@ export default function SplashScreen() {
       toValue: 1,
       duration: 1300,
       useNativeDriver: false,
-    }).start(() => {
-      router.replace("/(tabs)");
-    });
+    }).start();
 
     return () => progress.removeListener(listener);
   }, []);
@@ -47,20 +44,8 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream },
   content: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl },
-  logo: {
-    width: 260,
-    height: 260,
-    resizeMode: "contain",
-    marginBottom: -10,
-  },
-  title: { fontSize: 52, color: colors.charcoal, fontWeight: "400", letterSpacing: -1 },
-  tagline: {
-    marginTop: -12,
-    fontSize: 15,
-    color: colors.mutedText,
-    textAlign: "center",
-    marginBottom: spacing.xl,
-  },
+  logo: { width: 260, height: 260, resizeMode: "contain", marginBottom: -10 },
+  tagline: { marginTop: -12, fontSize: 15, color: colors.mutedText, textAlign: "center", marginBottom: spacing.xl },
   progressOuter: { width: "82%", height: 12, borderRadius: radius.round, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, overflow: "hidden" },
   progressInner: { height: "100%", backgroundColor: colors.sage, borderRadius: radius.round },
   percent: { marginTop: spacing.md, color: colors.clay, fontSize: 13, fontWeight: "700" },

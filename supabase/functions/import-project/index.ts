@@ -1,11 +1,220 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function detectPlatform(url: string) {
+  const hostname = new URL(url).hostname.replace("www.", "");
+
+  if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
+    return "youtube";
+  }
+
+  if (hostname.includes("tiktok.com")) {
+    return "tiktok";
+  }
+
+  return "web";
+}
+
+function extractYouTubeVideoId(url: string) {
+  const parsed = new URL(url);
+
+  if (parsed.hostname.includes("youtu.be")) {
+    return parsed.pathname.replace("/", "").split("?")[0];
+  }
+
+  if (parsed.pathname.includes("/shorts/")) {
+    return parsed.pathname.split("/shorts/")[1]?.split("/")[0] || "";
+  }
+
+  return parsed.searchParams.get("v") || "";
+}
+
+
+
+
+
+function extractTimestampChapters(description: string) {
+  if (!description) return [];
+
+  return description
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^\d{1,2}[:.]\d{2}(:\d{2})?\s+/.test(line))
+    .map((line) => line.replace(".", ":"));
+}
+
+async function fetchYouTubeTranscript(videoId: string) {
+  try {
+    const listUrl = `https://www.youtube.com/api/timedtext?type=list&v=${videoId}`;
+
+    const listResponse = await fetch(listUrl);
+    const listXml = await listResponse.text();
+
+    const langMatch =
+      listXml.match(/lang_code="en"/) ||
+      listXml.match(/lang_code="en-US"/) ||
+      listXml.match(/lang_code="([^"]+)"/);
+
+    if (!langMatch) {
+      console.log("No transcript tracks found");
+      return "";
+    }
+
+    const lang =
+      langMatch[0].includes('lang_code="en"')
+        ? "en"
+        : langMatch[0].includes('lang_code="en-US"')
+        ? "en-US"
+        : langMatch[1];
+
+    const transcriptUrl =
+      `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=json3`;
+
+    const transcriptResponse = await fetch(transcriptUrl);
+    const transcriptJson = await transcriptResponse.json();
+
+    const text = transcriptJson.events
+      ?.map((event: any) =>
+        event.segs?.map((seg: any) => seg.utf8).join("") || ""
+      )
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return text || "";
+  } catch (error) {
+    console.log("Transcript fetch failed:", error?.message || error);
+    return "";
+  }
+}
+
+async function fetchYouTubeMetadata(videoId: string) {
+  const apiKey = Deno.env.get("YOUTUBE_API_KEY");
+
+  if (!apiKey || apiKey === "YOUR_YOUTUBE_API_KEY") {
+    console.log("Missing real YouTube API key");
+    return null;
+  }
+
+  const response = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${apiKey}`
+  );
+
+  const data = await response.json();
+
+  console.log("YouTube API response:", JSON.stringify(data).slice(0, 1200));
+
+  const item = data.items?.[0];
+
+  if (!item) return null;
+
+  return {
+    title: item.snippet?.title || "",
+    description: item.snippet?.description || "",
+    thumbnail:
+      item.snippet?.thumbnails?.maxres?.url ||
+      item.snippet?.thumbnails?.high?.url ||
+      item.snippet?.thumbnails?.medium?.url ||
+      item.snippet?.thumbnails?.default?.url ||
+      "",
+    channel: item.snippet?.channelTitle || "",
+    tags: item.snippet?.tags || [],
+  };
+}
+
+
+
+function splitSupplies(parsed: any) {
+  const materialWords = ["fabric", "batting", "interfacing", "stabilizer", "fleece", "thread", "lining"];
+  const notionWords = ["zipper", "snap", "button", "elastic", "webbing", "label", "hardware", "magnetic"];
+  const toolWords = ["machine", "iron", "mat", "ruler", "rotary", "cutter", "scissors", "pins", "clips", "marker", "snips"];
+
+  const materials: any[] = [];
+  const notions: any[] = [];
+  const tools: any[] = [];
+
+  const all = [
+    ...(parsed.materials || []),
+    ...(parsed.notions || []),
+    ...(parsed.tools || []),
+  ];
+
+  for (const item of all) {
+    const name = String(item.name || item).toLowerCase();
+
+    if (toolWords.some((word) => name.includes(word))) {
+      tools.push(item);
+    } else if (notionWords.some((word) => name.includes(word))) {
+      notions.push(item);
+    } else if (materialWords.some((word) => name.includes(word))) {
+      materials.push(item);
+    } else {
+      materials.push(item);
+    }
+  }
+
+  return { materials, notions, tools };
+}
+
+
+
+function extractImageCandidates(html: string, pageUrl: string, youtubeMetadata: any) {
+  const candidates: string[] = [];
+
+  if (youtubeMetadata?.thumbnail) candidates.push(youtubeMetadata.thumbnail);
+
+  const patterns = [
+    /property=["']og:image["'] content=["'](.*?)["']/gi,
+    /name=["']twitter:image["'] content=["'](.*?)["']/gi,
+    /<img[^>]+src=["'](.*?)["']/gi,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of html.matchAll(pattern)) {
+      const raw = match[1];
+      if (!raw) continue;
+
+      try {
+        const absolute = new URL(raw, pageUrl).toString();
+        if (!absolute.includes("logo") && !absolute.includes("avatar") && !absolute.includes("icon")) {
+          candidates.push(absolute);
+        }
+      } catch (_) {}
+    }
+  }
+
+  return [...new Set(candidates)].slice(0, 12);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return json({}, 200);
 
   try {
     const { url } = await req.json();
+
+  const platform = detectPlatform(url);
+
+  console.log("Detected platform:", platform);
+
+  let youtubeMetadata = null;
+  let youtubeTranscript = "";
+
+  if (platform === "youtube") {
+    try {
+      const videoId = extractYouTubeVideoId(url);
+
+      if (videoId) {
+        youtubeMetadata = await fetchYouTubeMetadata(videoId);
+        youtubeTranscript = await fetchYouTubeTranscript(videoId);
+      }
+
+      console.log("YouTube metadata:", youtubeMetadata);
+      console.log("YouTube transcript length:", youtubeTranscript.length);
+    } catch (youtubeError) {
+      console.log("YouTube metadata fetch failed:", youtubeError?.message || youtubeError);
+      youtubeMetadata = null;
+    }
+  }
     if (!url) return json({ success: false, error: "Missing URL" }, 400);
 
     const supabase = createClient(
@@ -47,7 +256,9 @@ serve(async (req) => {
       "Imported Sewing Project"
     );
 
-    const fallbackImage = extractBestImage(html, url);
+    const fallbackImage = platform === "youtube"
+      ? youtubeMetadata?.thumbnail || ""
+      : extractBestImage(html, url);
 
     const metaDescription = decode(
       html.match(/name=["']description["'] content=["'](.*?)["']/i)?.[1] ||
@@ -58,21 +269,41 @@ serve(async (req) => {
     const jsonLd = extractJsonLd(html);
     const usefulText = extractUsefulText(html);
 
+    const youtubeChapters = extractTimestampChapters(youtubeMetadata?.description || "");
+
     const combinedContent = `
 SOURCE NAME:
-${sourceName}
+${youtubeMetadata?.channel || sourceName}
 
-TITLE:
+PLATFORM:
+${platform}
+
+YOUTUBE TITLE:
+${youtubeMetadata?.title || ""}
+
+YOUTUBE DESCRIPTION:
+${youtubeMetadata?.description || ""}
+
+YOUTUBE TRANSCRIPT:
+${youtubeTranscript || ""}
+
+YOUTUBE CHAPTERS:
+${youtubeChapters.join("\n")}
+
+YOUTUBE TAGS:
+${youtubeMetadata?.tags?.join(", ") || ""}
+
+PAGE TITLE:
 ${fallbackTitle}
 
-DESCRIPTION:
+PAGE DESCRIPTION:
 ${metaDescription}
 
 STRUCTURED DATA:
 ${jsonLd}
 
 PAGE TEXT:
-${usefulText}
+${platform === "youtube" ? "" : usefulText}
 `.slice(0, 30000);
 
     console.log("Import debug", {
@@ -137,16 +368,31 @@ ${combinedContent}
     const outputText = aiJson.choices?.[0]?.message?.content || "{}";
     const parsed = JSON.parse(outputText);
 
+    const supplies = splitSupplies(parsed);
+
+    const imageCandidates = extractImageCandidates(html, url, youtubeMetadata);
+
     const project = {
-      title: decode(parsed.title || fallbackTitle),
+      title: decode(parsed.title || youtubeMetadata?.title || fallbackTitle),
       sourceUrl: url,
-      sourceName: parsed.sourceName || sourceName,
-      image: parsed.image || fallbackImage || "",
-      description: decode(parsed.description || metaDescription || ""),
+      sourceName: parsed.sourceName || youtubeMetadata?.channel || sourceName,
+      image: platform === "youtube"
+        ? youtubeMetadata?.thumbnail || fallbackImage || ""
+        : parsed.image || imageCandidates[0] || fallbackImage || "",
+      imageCandidates,
+      description: decode(parsed.description || youtubeMetadata?.description || metaDescription || ""),
       difficulty: parsed.difficulty || "",
       estimatedTime: parsed.estimatedTime || "",
-      materials: parsed.materials || [],
-      steps: parsed.steps || [],
+      materials: supplies.materials,
+      notions: supplies.notions,
+      tools: supplies.tools,
+      cuttingMeasurements: parsed.cuttingMeasurements || [],
+      steps:
+        parsed.steps?.length
+          ? parsed.steps
+          : youtubeChapters?.length
+          ? youtubeChapters
+          : [],
       tags: parsed.tags || [],
     };
 
