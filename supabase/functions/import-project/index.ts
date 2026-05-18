@@ -186,6 +186,35 @@ function extractImageCandidates(html: string, pageUrl: string, youtubeMetadata: 
   return [...new Set(candidates)].slice(0, 12);
 }
 
+
+
+function extractTikTokMetadata(html: string, url: string) {
+  const title = decode(
+    html.match(/property=["']og:title["'] content=["'](.*?)["']/i)?.[1] ||
+    html.match(/<title>(.*?)<\/title>/i)?.[1] ||
+    "TikTok Sewing Inspiration"
+  );
+
+  const description = decode(
+    html.match(/property=["']og:description["'] content=["'](.*?)["']/i)?.[1] ||
+    html.match(/name=["']description["'] content=["'](.*?)["']/i)?.[1] ||
+    ""
+  );
+
+  const image =
+    html.match(/property=["']og:image["'] content=["'](.*?)["']/i)?.[1] ||
+    html.match(/name=["']twitter:image["'] content=["'](.*?)["']/i)?.[1] ||
+    "";
+
+  return {
+    title,
+    description,
+    image,
+    sourceName: "TikTok",
+    sourceUrl: url,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return json({}, 200);
 
@@ -249,6 +278,10 @@ serve(async (req) => {
 
     const html = await page.text();
     const sourceName = new URL(url).hostname.replace("www.", "");
+
+    const tiktokMetadata = platform === "tiktok"
+      ? extractTikTokMetadata(html, url)
+      : null;
 
     const fallbackTitle = decode(
       html.match(/<title>(.*?)<\/title>/i)?.[1] ||
@@ -393,7 +426,7 @@ ${combinedContent}
           : youtubeChapters?.length
           ? youtubeChapters
           : [],
-      tags: parsed.tags || [],
+      tags: parsed.tags?.length ? parsed.tags : platform === "tiktok" ? ["TikTok", "Inspiration"] : [],
     };
 
     await supabase

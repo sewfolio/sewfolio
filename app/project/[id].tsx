@@ -86,6 +86,18 @@ export default function ProjectDetailScreen() {
               >
                 <Text style={styles.shoppingButtonText}>Shopping List</Text>
               </Pressable>
+
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: "/project/enrich/[id]",
+                    params: { id: project.id },
+                  })
+                }
+                style={styles.shoppingButton}
+              >
+                <Text style={styles.shoppingButtonText}>Enrich Details</Text>
+              </Pressable>
             </View>
 
             <View style={styles.sourceMetaRow}>
@@ -303,13 +315,11 @@ const styles = StyleSheet.create({
   sourceLabel: { fontSize: 12, color: colors.clay, textTransform: "uppercase", letterSpacing: 1.1, marginBottom: 6 },
   sourceUrl: { fontSize: 13, color: colors.mutedText, lineHeight: 19 },
   actionRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     gap: spacing.sm,
     marginTop: spacing.md,
   },
   shoppingButton: {
-    alignSelf: "flex-start",
+    alignSelf: "stretch",
     backgroundColor: colors.white,
     borderRadius: radius.round,
     borderWidth: 1,
@@ -324,7 +334,7 @@ const styles = StyleSheet.create({
   },
 
   statusButton: {
-    alignSelf: "flex-start",
+    alignSelf: "stretch",
     backgroundColor: colors.sage,
     borderRadius: radius.round,
     paddingHorizontal: 18,
@@ -332,7 +342,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   finishedButton: {
-    alignSelf: "flex-start",
+    alignSelf: "stretch",
     backgroundColor: colors.clay,
     borderRadius: radius.round,
     paddingHorizontal: 18,
