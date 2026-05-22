@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ActivityIndicator, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { colors, radius, spacing } from "../../src/theme";
 import { useSewfolio } from "../../src/store/sewfolioStore";
 import { importProjectFromUrl } from "../../src/services/importProject";
@@ -11,7 +11,7 @@ const tints = ["#F3DDD7", "#EFECE2", "#F5EFE9", "#E9E5D9"];
 export default function ImportProjectLinkScreen() {
   const { addProject, workbooks, addWorkbook } = useSewfolio();
 
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(String(params.sharedUrl || ""));
   const [title, setTitle] = useState("");
   const [image, setImage] = useState("");
   const [description, setDescription] = useState("");
