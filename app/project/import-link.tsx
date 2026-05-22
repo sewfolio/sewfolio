@@ -9,6 +9,7 @@ import { placeholderProject } from "../../src/utils/placeholders";
 const tints = ["#F3DDD7", "#EFECE2", "#F5EFE9", "#E9E5D9"];
 
 export default function ImportProjectLinkScreen() {
+  const params = useLocalSearchParams();
   const { addProject, workbooks, addWorkbook } = useSewfolio();
 
   const [url, setUrl] = useState(String(params.sharedUrl || ""));
