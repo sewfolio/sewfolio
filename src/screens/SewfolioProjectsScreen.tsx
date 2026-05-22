@@ -4,53 +4,12 @@ import { router } from "expo-router";
 import { colors, radius, spacing, shadows } from "../theme";
 import { useSewfolio } from "../store/sewfolioStore";
 import { placeholderProject } from "../utils/placeholders";
-import HomeIcon from "../../assets/icons/home.svg";
-import ProjectsIcon from "../../assets/icons/projects.svg";
-import StashIcon from "../../assets/icons/stash.svg";
-import ProfileIcon from "../../assets/icons/profile.svg";
+import BottomNav from "../components/BottomNav";
 
 
-function NavIcon({ type, active = false }: { type: string; active?: boolean }) {
-  const color = active ? colors.clay : colors.sage;
-  const size = 34;
 
-  if (type === "home") return <HomeIcon width={size} height={size} color={color} />;
-  if (type === "projects") return <ProjectsIcon width={size} height={size} color={color} />;
-  if (type === "stash") return <StashIcon width={size} height={size} color={color} />;
-  if (type === "profile") return <ProfileIcon width={size} height={size} color={color} />;
 
-  return null;
-}
 
-function BottomNav() {
-  return (
-    <View style={styles.bottomNav}>
-      <Pressable onPress={() => router.push("/(tabs)")} style={styles.navButton}>
-        <NavIcon type="home" />
-        <Text style={styles.navItem}>Home</Text>
-      </Pressable>
-
-      <Pressable onPress={() => router.push("/(tabs)/explore")} style={styles.navButton}>
-        <NavIcon type="projects" active />
-        <Text style={styles.navItemActive}>Projects</Text>
-      </Pressable>
-
-      <Pressable style={styles.addButton} onPress={() => router.push("/project/import-link")}>
-        <Text style={styles.addText}>+</Text>
-      </Pressable>
-
-      <Pressable onPress={() => router.push("/stash")} style={styles.navButton}>
-        <NavIcon type="stash" />
-        <Text style={styles.navItem}>Stash</Text>
-      </Pressable>
-
-      <Pressable onPress={() => router.push("/(tabs)/profile")} style={styles.navButton}>
-        <NavIcon type="profile" />
-        <Text style={styles.navItem}>Profile</Text>
-      </Pressable>
-    </View>
-  );
-}
 
 function WorkbookCard({ item, count }: any) {
   return (

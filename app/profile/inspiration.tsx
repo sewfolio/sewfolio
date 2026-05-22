@@ -100,7 +100,7 @@ export default function InspirationScreen() {
 
           <TextInput
             style={styles.input}
-            placeholder="Source link"
+            placeholder="TikTok, Instagram, Pinterest, YouTube, or blog link"
             placeholderTextColor={colors.mutedText}
             value={sourceUrl}
             onChangeText={setSourceUrl}
@@ -126,7 +126,7 @@ export default function InspirationScreen() {
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No inspiration saved yet</Text>
-            <Text style={styles.emptyText}>Save screenshots, links, outfits, fabric combos, and ideas before they become projects.</Text>
+            <Text style={styles.emptyText}>Save TikToks, screenshots, links, outfits, fabric combos, and ideas before they become projects.</Text>
           </View>
         ) : (
           items.map((item) => (

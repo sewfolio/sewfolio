@@ -4,55 +4,14 @@ import { router } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { useSewfolio } from "../../src/store/sewfolioStore";
 import { colors, radius, spacing, shadows } from "../../src/theme";
-
-import HomeIcon from "../../assets/icons/home.svg";
-import ProjectsIcon from "../../assets/icons/projects.svg";
-import StashIcon from "../../assets/icons/stash.svg";
-import ProfileIcon from "../../assets/icons/profile.svg";
+import BottomNav from "../../src/components/BottomNav";
 
 
 
-function NavIcon({ type, active = false }: { type: string; active?: boolean }) {
-  const color = active ? colors.clay : colors.sage;
-  const size = 28;
 
-  if (type === "home") return <HomeIcon width={size} height={size} color={color} />;
-  if (type === "projects") return <ProjectsIcon width={size} height={size} color={color} />;
-  if (type === "stash") return <StashIcon width={size} height={size} color={color} />;
-  if (type === "profile") return <ProfileIcon width={size} height={size} color={color} />;
 
-  return null;
-}
 
-function BottomNav() {
-  return (
-    <View style={styles.bottomNav}>
-      <Pressable onPress={() => router.push("/(tabs)")} style={styles.navButton}>
-        <NavIcon type="home" />
-        <Text style={styles.navItem}>Home</Text>
-      </Pressable>
 
-      <Pressable onPress={() => router.push("/(tabs)/explore")} style={styles.navButton}>
-        <NavIcon type="projects" />
-        <Text style={styles.navItem}>Projects</Text>
-      </Pressable>
-
-      <Pressable style={styles.addButton} onPress={() => router.push("/project/new")}>
-        <Text style={styles.addText}>+</Text>
-      </Pressable>
-
-      <Pressable onPress={() => router.push("/stash")} style={styles.navButton}>
-        <NavIcon type="stash" />
-        <Text style={styles.navItem}>Stash</Text>
-      </Pressable>
-
-      <Pressable onPress={() => router.push("/(tabs)/profile")} style={styles.navButton}>
-        <NavIcon type="profile" active />
-        <Text style={styles.navItemActive}>Profile</Text>
-      </Pressable>
-    </View>
-  );
-}
 
 async function handleSignOut() {
   await supabase.auth.signOut();

@@ -416,7 +416,10 @@ ${combinedContent}
       description: decode(parsed.description || youtubeMetadata?.description || metaDescription || ""),
       difficulty: parsed.difficulty || "",
       estimatedTime: parsed.estimatedTime || "",
-      materials: supplies.materials,
+      materials:
+        platform === "tiktok" && !supplies.materials.length
+          ? [{ name: "Add supplies from TikTok", amount: "Not specified", type: "Supply" }]
+          : supplies.materials,
       notions: supplies.notions,
       tools: supplies.tools,
       cuttingMeasurements: parsed.cuttingMeasurements || [],
@@ -425,8 +428,20 @@ ${combinedContent}
           ? parsed.steps
           : youtubeChapters?.length
           ? youtubeChapters
+          : platform === "tiktok"
+          ? [
+              "Review the saved TikTok link.",
+              "Add screenshots or notes from the video.",
+              "List supplies, fabric, and measurements.",
+              "Break the idea into sewing steps."
+            ]
           : [],
-      tags: parsed.tags?.length ? parsed.tags : platform === "tiktok" ? ["TikTok", "Inspiration"] : [],
+      tags:
+        parsed.tags?.length
+          ? parsed.tags
+          : platform === "tiktok"
+          ? ["TikTok", "Inspiration", "Needs details"]
+          : [],
     };
 
     await supabase
