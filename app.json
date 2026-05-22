@@ -20,7 +20,6 @@
       "expo-router",
       "expo-secure-store",
       "expo-apple-authentication",
-      "expo-status-bar",
       "expo-share-intent"
     ],
     "experiments": {
