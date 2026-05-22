@@ -13,9 +13,9 @@ export default function QuickActions() {
         />
       </Pressable>
 
-      <Pressable onPress={() => router.push("/profile/inspiration")} style={styles.button}>
+      <Pressable onPress={() => router.push("/fabric/new")} style={styles.button}>
         <Image
-          source={require("../../../assets/images/save-inspiration-button.png")}
+          source={require("../../../assets/images/add-fabric-button.png")}
           style={styles.image}
         />
       </Pressable>
