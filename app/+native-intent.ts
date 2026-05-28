@@ -4,7 +4,7 @@ export async function redirectSystemPath({
   path: string;
   initial: boolean;
 }) {
-  if (!path) return "/";
+  if (!path) return "/share-import";
 
   const lower = path.toLowerCase();
 
@@ -16,5 +16,5 @@ export async function redirectSystemPath({
     return "/share-import";
   }
 
-  return path;
+  return "/share-import";
 }
